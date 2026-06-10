@@ -50,6 +50,32 @@ export const logout = (req: any, res: any) => {
     }
 }
 
+export const checkLogin = (req: any, res: any) => {
+
+    const id : number = getId(req.cookies.session);
+
+    if (id ===  null) {
+        return res.status(401).json({error: "user not logged into any user profile"});
+    }
+
+    try{
+        const db = new Database("./database/database.db");
+        const user  = db.prepare(`
+            SELECT name FROM users WHERE id = (?)
+        `).get(id);
+
+        if (!user) {
+            return res.status(401).json({error: "user not logged into any user profile"});
+        }
+
+        db.close()
+
+        return res.status(200).json({id: id});
+    } catch (e) {
+        return res.status(500).json({error: e});
+    }
+}
+
 export const getHabits = (req: any, res: any) => {
 
     const id : number = getId(req.cookies.session);
@@ -61,7 +87,7 @@ export const getHabits = (req: any, res: any) => {
     try{
         const db = new Database("./database/database.db");
         const habits = db.prepare(`
-            SELECT name, description, icon, createdAt FROM habits
+            SELECT id, name, description, icon, createdAt FROM habits
             WHERE user_id = (?);
         `).all(id);
 

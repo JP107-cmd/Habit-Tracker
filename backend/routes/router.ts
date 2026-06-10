@@ -6,16 +6,17 @@ import {
     createNewHabit,
     getHabit,
     updateHabit,
-    deleteHabit
+    deleteHabit,
+    checkLogin
  } from "../controller/controller"
 
 export const router = express.Router();
 
 router.post("/login", login)
 
-
 router.get("/logout", logout)
 
+router.get("/auth/me", checkLogin)
 
 router.get("/all-habits", getHabits)
 
