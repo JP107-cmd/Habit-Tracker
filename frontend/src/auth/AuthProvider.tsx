@@ -23,7 +23,7 @@ export default function AuthProvider({  children }: { children : any}) {
     } catch {
         setUser(null);
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   }
 

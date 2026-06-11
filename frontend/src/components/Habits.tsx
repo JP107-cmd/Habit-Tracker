@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import HabitCard from "./HabitCard";
+import Loading from "./Loading";
 
 type Habit = {
     id : number,
@@ -35,16 +36,16 @@ export default function Habits() {
 
     if (!habits) {
         return (
-            <div>
-                Loading
-            </div>
+        <div className="m-10 mt-8 px-2 flex flex-col gap-4">
+            <Loading></Loading>
+        </div>
     )}
 
     return(
-        <div className="m-4 p-4 bg-[#373737] rounded-md h-100% flex flex-col gap-5">
-            <p className="font-bold text-4xl ml-6">Habits</p>
-            {habits.map((habit) => 
-                    <HabitCard 
+        <div className="m-10 mt-8 px-2 flex flex-col gap-4">
+            <p className="font-bold text-3xl tracking-tight mb-2">Habits</p>
+            {habits.map((habit) =>
+                    <HabitCard key={habit.id}
                         habit={habit}
                     />
                 )}

@@ -1,9 +1,15 @@
+import { formatDistanceToNow } from 'date-fns/formatDistanceToNow'
+
 type Habit = {
     id : number,
     name : string,
     description: string,
     icon: string,
     createdAt: string
+}
+
+function getFormattedTime(time : string) {
+    return formatDistanceToNow(new Date(time))
 }
 
 export default function HabitCard({ habit } : {habit : Habit}) {
@@ -31,17 +37,17 @@ export default function HabitCard({ habit } : {habit : Habit}) {
     }
     
     return (
-        <div className="ml-4 p-4 bg-[#4b4b4b] rounded-2xl">
-            <div>
-            <h1 className="font-bold text-xl border-b-white border-b-2 ">{icon} {name}</h1>
+        <div className="flex flex-col gap-3 p-5 bg-[#262626] rounded-2xl border border-white/10 hover:border-white/20 transition-colors">
+            <div className="pb-3 border-b border-white/10">
+            <h1 className="font-semibold text-lg tracking-tight">{icon} {name}</h1>
             </div>
-            <div>
-                <p>{description}</p>
-                <p>Created At: {createdAt}</p>
+            <div className="space-y-1">
+                <p className="text-neutral-300">{description}</p>
+                <p className="text-xs text-neutral-500">Created: {getFormattedTime(createdAt)} ago</p>
             </div>
 
-            <div className="bg-red-400 rounded-lg w-fit p-1">
-                <button onClick={handleClick}>Delete Habit</button>
+            <div className="w-fit mt-1">
+                <button onClick={handleClick} className="px-3 py-1.5 text-sm font-medium rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors">Delete Habit</button>
             </div>
         </div>
     )

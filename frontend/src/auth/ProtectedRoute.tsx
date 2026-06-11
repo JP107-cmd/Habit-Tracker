@@ -2,6 +2,7 @@ import { Outlet } from "react-router";
 import { useAuth } from "./AuthProvider";
 import { useNavigate } from "react-router";
 import { useEffect } from "react";
+import Loading from "../components/Loading";
 
 export default function ProtectedRoute() {
   const { isLoggedIn, loading } = useAuth();
@@ -13,7 +14,7 @@ export default function ProtectedRoute() {
       }
   }, [loading, isLoggedIn, navigate]);
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <Loading></Loading>;
   if (!isLoggedIn) return null;
 
   return <Outlet />;
