@@ -20,19 +20,22 @@ export default function Login() {
     useEffect(() => {
         if (!error) return;
         setVisible(true);
-        setTimeout(() => {setVisible(false)}, 5000)
+        setTimeout(() => {
+            setVisible(false)
+            setError(null);
+        }, 5000)
     }, [error, errorState])
 
     if (loading) return <Loading></Loading>;
     if (isLoggedIn) return null;
     const handleSubmit = async (event: any) => {
 
+        event.preventDefault();
+
         if (name.length === 0) {
             setError("Error: Please enter your name");
             return setErrorState(errorState+1);
         }
-
-        event.preventDefault();
  
         const sendReq = async () => {
             try {
@@ -60,27 +63,27 @@ export default function Login() {
     }
 
     return(
-        <div className="flex items-center mt-16 min-h-screen px-4 flex-col gap-5">
-            <div className="w-full max-w-3xl p-8 bg-[#1e1e1e] rounded-2xl border border-white/10 flex flex-col gap-8">
-                <div className="mx-auto max-w-[30%]">
-                    <img src="/web-app-manifest-512x512.png"/>
+        <div className="flex items-center justify-center min-h-screen px-4 flex-col gap-5">
+            <div className="w-full max-w-sm p-8 bg-[#1e1e1e] rounded-2xl border border-white/10 shadow-2xl shadow-black/40 flex flex-col gap-6">
+                <div className="mx-auto w-20">
+                    <img src="/web-app-manifest-512x512.png" className="w-full rounded-2xl"/>
                 </div>
-                <div className="space-y-1 mb-6 mx-auto">
-                    <h1 className="text-6xl font-semibold tracking-tight">Habit Tracker</h1>
+                <div className="space-y-1.5 text-center">
+                    <h1 className="text-3xl font-semibold tracking-tight">Habit Tracker</h1>
                     <h4 className="text-neutral-300">Track your habits!</h4>
                     <h6 className="text-sm text-neutral-500">Enter your name to get started or to log back in</h6>
                 </div>
-                    <form className="flex flex-row gap-2" onSubmit={handleSubmit}>
+                    <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
                         <input
-                        type="name" className="flex-1 px-3 py-2 rounded-lg bg-[#161616] border border-white/10 text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-colors" value={name} id="name"
+                        type="text" placeholder="Your name" className="w-full px-3 py-2 rounded-lg bg-[#161616] border border-white/10 text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-colors" value={name} id="name"
                         onChange={(e) => setName(e.target.value)}>
                         </input>
-                        <button type="submit" className="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors">Log In</button>
+                        <button type="submit" className="w-full px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors">Log In</button>
                     </form>
                 </div>
                 {visible ? 
-                <div className={"fixed bottom-5 right-5 p-8 bg-red-600 border-2 border-red-900 rounded-xl"}>
-                    <p>{error}</p>
+                <div className={"fixed bottom-5 right-5 px-4 py-3 bg-red-500/10 text-red-300 border border-red-500/30 rounded-xl backdrop-blur shadow-lg"}>
+                    <p className="text-sm">{error}</p>
                 </div>
                     :
                 <>

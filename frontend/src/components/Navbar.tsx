@@ -6,9 +6,9 @@ export default function Navbar() {
 
     return(
         <div className="sticky top-0 z-10 w-full px-6 py-4 flex items-center justify-between bg-[#1a1a1a]/90 backdrop-blur border-b border-white/10">
-            <div className="font-semibold tracking-tight text-lg flex flex-row gap-1">
-                <img src="favicon.svg" className="w-10"></img>
-                <h1 className="mt-1">Habit Tracker</h1>
+            <div className="font-semibold tracking-tight text-lg flex flex-row items-center gap-2">
+                <img src="favicon.svg" className="w-9"></img>
+                <h1>Habit Tracker</h1>
             </div>
             <div>
                 <button

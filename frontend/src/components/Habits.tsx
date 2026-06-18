@@ -1,40 +1,18 @@
-import { useState, useEffect } from "react";
 import HabitCard from "./HabitCard";
 import Loading from "./Loading";
+import type { Habit } from "../pages/Dashboard";
 
-type Habit = {
-    id : number,
-    name : string,
-    description: string,
-    icon: string,
-    createdAt: string
+type HabitsProps = {
+    habits: Habit[],
+    loading: boolean,
+    onEdit: (habit : Habit) => void,
+    error: string | null,
+    onChanged: () => void,
+    onNewHabit: () => void
 }
 
-export default function Habits() {
-    const [error, setError] = useState<string |null>();
-    const [habits, setHabits] = useState<Habit[]>([]);
-
-    useEffect( () => {
-        const fetchInfo = async () => {
-            try {
-            const res = await fetch("http://localhost:3000/api/habits/all-habits", {
-                credentials: "include",
-            });
-
-            if (!res.ok) {
-                throw new Error(`${res.status}`);
-            }
-            const data = await res.json();
-            setHabits(data.habits);
-
-            } catch(e) {
-                setError("error: " + e);
-            }
-        }
-    fetchInfo();
-    }, [])
-
-    if (!habits) {
+export default function Habits({ habits, loading, onEdit, error, onChanged, onNewHabit }: HabitsProps) {
+    if (loading) {
         return (
         <div className="m-10 mt-8 px-2 flex flex-col gap-4">
             <Loading></Loading>
@@ -43,10 +21,19 @@ export default function Habits() {
 
     return(
         <div className="m-10 mt-8 px-2 flex flex-col gap-4">
-            <p className="font-bold text-3xl tracking-tight mb-2">Habits</p>
+            <div className="flex flex-row items-center justify-between">
+                <p className="font-bold text-3xl tracking-tight mb-2">Habits</p>
+                <button
+                    onClick={onNewHabit}
+                    className="w-fit px-5 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors"
+                >Create Habit</button>
+            </div>
+            {error && <p className="text-red-400">{error}</p>}
             {habits.map((habit) =>
                     <HabitCard key={habit.id}
                         habit={habit}
+                        onEdit={onEdit}
+                        onDeleted={onChanged}
                     />
                 )}
         </div>

@@ -12,10 +12,10 @@ function getFormattedTime(time : string) {
     return formatDistanceToNow(new Date(time))
 }
 
-export default function HabitCard({ habit } : {habit : Habit}) {
+export default function HabitCard({ habit, onEdit, onDeleted } : {habit : Habit, onEdit : (habit : Habit) => void, onDeleted : () => void}) {
     const { id, name, description, icon, createdAt } = habit;
 
-    const handleClick = async () => {
+    const handleDelete = async () => {
         const sendReq = async () => {
             try {
                 const response = await fetch("http://localhost:3000/api/habits/"+id,
@@ -27,6 +27,7 @@ export default function HabitCard({ habit } : {habit : Habit}) {
                 if (!response.ok) {
                     throw new Error("Bad Request");
                 } else {
+                    onDeleted();
                 }
 
             } catch (e) {
@@ -45,9 +46,19 @@ export default function HabitCard({ habit } : {habit : Habit}) {
                 <p className="text-neutral-300">{description}</p>
                 <p className="text-xs text-neutral-500">Created: {getFormattedTime(createdAt)} ago</p>
             </div>
-
-            <div className="w-fit mt-1">
-                <button onClick={handleClick} className="px-3 py-1.5 text-sm font-medium rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors">Delete Habit</button>
+            <div className="mt-1 flex flex-row justify-between">
+                <button onClick={() => onEdit(habit)} className="px-3 py-1.5 text-sm font-medium rounded-lg bg-white/5 text-neutral-300 border border-white/10 hover:bg-white/10 hover:text-white transition-colors w-fit flex flex-row items-center gap-1.5">
+                    <div className="w-4 shrink-0 flex items-center">
+                        <img src="edit.svg"></img>
+                    </div>
+                    <p>Edit Habit</p>
+                </button>
+                <button onClick={handleDelete} className="px-3 py-1.5 text-sm font-medium rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors w-fit flex flex-row items-center gap-1.5">
+                    <div className="w-4 shrink-0 flex items-center">
+                        <img src="delete.svg"></img>
+                    </div>
+                    <p>Delete Habit</p>
+                </button>
             </div>
         </div>
     )

@@ -1,15 +1,16 @@
 import { useState } from "react"
+import type { Habit } from "../pages/Dashboard";
 
-type newHabitType = {
+type HabitType = {
     name : string,
     description: string,
     icon: string,
 }
 
-export default function NewHabit({ onCreated, onClose } : { onCreated : () => void, onClose : () => void }) {
-    const [name, setName] = useState<string>("");
-    const [description, setDescription] = useState<string>("");
-    const [icon, setIcon] = useState<string>("");
+export default function EditPopup({ onUpdate, onClose, habit } : { onUpdate : () => void, onClose : () => void, habit : Habit}) {
+    const [name, setName] = useState<string>(habit.name);
+    const [description, setDescription] = useState<string>(habit.description);
+    const [icon, setIcon] = useState<string>(habit.icon);
     const [error, setError] = useState<string | null>();
     const formStyling : string = "w-full mt-1.5 px-3 py-2 rounded-lg bg-[#161616] border border-white/10 text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-colors"
 
@@ -33,35 +34,29 @@ export default function NewHabit({ onCreated, onClose } : { onCreated : () => vo
             return setError("Missing fields " + missingFields)
         }
 
-        const newHabit : newHabitType = {
+        const updatedHabit : HabitType = {
             name : name,
             description : description,
             icon : icon
         }
 
-        console.log(newHabit)
-
         const sendReq = async () => {
             try {
-                const response = await fetch("http://localhost:3000/api/habits/new-habit",
+                const response = await fetch("http://localhost:3000/api/habits/"+habit.id,
                     {
                         credentials: "include",
-                        method: "POST",
+                        method: "PATCH",
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(newHabit)
+                        body: JSON.stringify(updatedHabit)
                     });
                 if (!response.ok) {
                     throw new Error("Bad Request");
                 } else {
-                    setName("");
-                    setDescription("");
-                    setIcon("");
-                    onCreated();
+                    onUpdate();
                     onClose();
                 }
 
             } catch (e) {
-                console.log(e)
                 return setError("Error: "+ e);
             }
         }
@@ -71,7 +66,7 @@ export default function NewHabit({ onCreated, onClose } : { onCreated : () => vo
     return (
         <div className="fixed inset-0 z-50 m-auto h-fit w-full max-w-lg p-6 rounded-2xl border border-white/10 bg-[#1e1e1e] shadow-[0_0_0_100vmax_rgba(0,0,0,0.7)]">
             <div className="flex flex-row items-center justify-between">
-                <h1 className="text-lg font-semibold tracking-tight">Create a new Habit</h1>
+                <h1 className="text-lg font-semibold tracking-tight">Edit {habit.name}</h1>
                 <div className="w-5 shrink-0 cursor-pointer hover:opacity-70 transition-opacity" onClick={onClose}>
                     <img src="x.svg"></img>
                 </div>
@@ -101,7 +96,7 @@ export default function NewHabit({ onCreated, onClose } : { onCreated : () => vo
                     </div>
                     <button
                     type="submit" className="w-fit px-5 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors"
-                    >Create</button>
+                    >Update</button>
                 </form>
             </div>
         </div>
