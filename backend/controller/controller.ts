@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import { add, sub } from 'date-fns';
 
 const getId = (cookie: any) => {
     try {
@@ -161,7 +162,6 @@ export const getHabit = (req: any, res: any) => {
             SELECT name, description, icon, createdAt FROM habits 
             WHERE id = (?) AND user_id = (?);
         `).get(habitId, id);
-        console.log(habit)
 
         db.close();
         return res.status(200).json(habit);
@@ -268,4 +268,186 @@ export const deleteHabit = (req: any, res: any) => {
     } catch (e) {
         return res.status(500).json({error: e});
     }
+}
+
+export const recordCompletion = (req : any, res : any) => {
+
+    const id : number = getId(req.cookies.session);
+    if (!id) {
+        return res.status(401).json({error: "access denied, not logged into any user profile"});
+    }
+
+    const habitId : number = req.body.id;
+    if (!habitId) {
+        return res.status(400).json({error: "bad request"});
+    }
+
+    try {
+        const db = new Database("./database/database.db");
+
+        const habit = db.prepare(`
+            SELECT name FROM habits 
+            WHERE id = (?) AND user_id = (?)
+        `).get(habitId, id);
+
+        if (!habit) {
+            return res.status(400).json({error: "no habit found"});
+        }
+
+        const today = new Date().toLocaleDateString('en-CA')
+        const exists = db.prepare(`
+            SELECT id FROM habit_completions
+            WHERE id = (?) and completion_date = (?)
+        `).get(habitId, today)
+
+
+        if (exists == null) {
+            return res.status(409).json({status: "habit already completed today"})
+        }
+        
+        const insert = db.prepare(`
+            INSERT OR IGNORE INTO habit_completions (habit_id) VALUES (?)
+        `)
+
+        insert.run(habitId)
+
+        db.close();
+        return res.status(200).json({status: "habit completion successfully recorded"});
+    } catch (e) {
+        return res.status(500).json({error: e});
+    }
+
+}
+
+export const getNumberOfCompletions = (req : any, res : any) => {
+
+    const id : number = getId(req.cookies.session);
+    if (!id) {
+        return res.status(401).json({error: "access denied, not logged into any user profile"});
+    }
+
+    const habitId : number = req.params.id;
+    if (!habitId) {
+        return res.status(400).json({error: "bad request"});
+    }
+
+    try {
+        const db = new Database("./database/database.db");
+
+        const habit = db.prepare(`
+            SELECT name FROM habits 
+            WHERE id = (?) AND user_id = (?)
+        `).get(habitId, id);
+
+        if (!habit) {
+            return res.status(400).json({error: "no habit found"});
+        }
+        
+        const count = db.prepare(`
+            SELECT COUNT(*)  
+            FROM habit_completions
+            WHERE habit_id = (?)
+        `).get(habitId);
+
+        db.close();
+        return res.status(200).json({count});
+    } catch (e) {
+        return res.status(500).json({error: e});
+    }
+
+}
+
+export const isCompleted = (req : any, res : any) => {
+
+    const id : number = getId(req.cookies.session);
+    if (!id) {
+        return res.status(401).json({error: "access denied, not logged into any user profile"});
+    }
+
+    const habitId : number = req.params.id;
+    if (!habitId) {
+        return res.status(400).json({error: "bad request"});
+    }
+
+    try {
+        const db = new Database("./database/database.db");
+
+        const habit = db.prepare(`
+            SELECT name FROM habits 
+            WHERE id = (?) AND user_id = (?)
+        `).get(habitId, id);
+
+        if (!habit) {
+            return res.status(400).json({error: "no habit found"});
+        }
+        
+        const today = new Date().toLocaleDateString('en-CA')
+
+        const exists = db.prepare(`
+            SELECT * FROM
+            habit_completions
+            WHERE habit_id = (?)
+            AND completion_date = (?)
+        `).get(habitId, today);
+
+
+        db.close();
+        return res.status(200).json({completedToday : (!! exists)});
+    } catch (e) {
+        return res.status(500).json({error: e});
+    }
+
+}
+
+export const currentStreak = (req : any, res : any) => {
+
+    const id : number = getId(req.cookies.session);
+    if (!id) {
+        return res.status(401).json({error: "access denied, not logged into any user profile"});
+    }
+
+    const habitId : number = req.params.id;
+    if (!habitId) {
+        return res.status(400).json({error: "bad request"});
+    }
+
+    try {
+        const db = new Database("./database/database.db");
+
+        const habit = db.prepare(`
+            SELECT name FROM habits 
+            WHERE id = (?) AND user_id = (?)
+        `).get(habitId, id);
+
+        if (!habit) {
+            return res.status(400).json({error: "no habit found"});
+        }
+        
+        let date = new Date();
+
+        let streak : number = 0;
+
+        while (true) {
+            const habit = db.prepare(`
+                SELECT * 
+                FROM habit_completions
+                WHERE habit_id = (?)
+                AND completion_date = (?)
+            `).get(habitId, date.toLocaleDateString('en-CA'));
+
+            if (habit == null) {
+                break;
+            }
+
+            streak++;
+            date = sub(date, {days : 1})
+        }
+
+
+        db.close();
+        return res.status(200).json({currentStreak : streak});
+    } catch (e) {
+        return res.status(500).json({error: e});
+    }
+
 }

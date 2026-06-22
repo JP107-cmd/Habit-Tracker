@@ -69,7 +69,7 @@ export default function NewHabit({ onCreated, onClose } : { onCreated : () => vo
     }
 
     return (
-        <div className="fixed inset-0 z-50 m-auto h-fit w-full max-w-lg p-6 rounded-2xl border border-white/10 bg-[#1e1e1e] shadow-[0_0_0_100vmax_rgba(0,0,0,0.7)]">
+        <div className="fixed inset-0 z-50 m-auto h-fit w-full max-w-2xl p-6 rounded-2xl border border-white/10 bg-[#1e1e1e] shadow-[0_0_0_100vmax_rgba(0,0,0,0.7)]">
             <div className="flex flex-row items-center justify-between">
                 <h1 className="text-lg font-semibold tracking-tight">Create a new Habit</h1>
                 <div className="w-5 shrink-0 cursor-pointer hover:opacity-70 transition-opacity" onClick={onClose}>

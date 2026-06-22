@@ -25,7 +25,7 @@ db.exec(`
     CREATE TABLE IF NOT EXISTS habit_completions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         habit_id INTEGER NOT NULL REFERENCES habits(id),
-        completion_date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        completion_date DATE NOT NULL DEFAULT (date('now', 'localtime')),
         UNIQUE(habit_id, completion_date)
     )    
 `);

@@ -7,7 +7,11 @@ import {
     getHabit,
     updateHabit,
     deleteHabit,
-    checkLogin
+    checkLogin,
+    recordCompletion,
+    getNumberOfCompletions,
+    isCompleted,
+    currentStreak
  } from "../controller/controller"
 
 export const router = express.Router();
@@ -28,7 +32,10 @@ router.patch("/:id", updateHabit)
 
 router.delete("/:id", deleteHabit)
 
-/*
-add completion records later
-router.post("/habit-completed")
-*/
+router.post("/habit-completed", recordCompletion)
+
+router.get("/completions/:id", getNumberOfCompletions)
+
+router.get("/is-completed/:id", isCompleted)
+
+router.get("/current-streak/:id", currentStreak)
