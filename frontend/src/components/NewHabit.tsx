@@ -39,8 +39,6 @@ export default function NewHabit({ onCreated, onClose } : { onCreated : () => vo
             icon : icon
         }
 
-        console.log(newHabit)
-
         const sendReq = async () => {
             try {
                 const response = await fetch("http://localhost:3000/api/habits/new-habit",
@@ -61,7 +59,6 @@ export default function NewHabit({ onCreated, onClose } : { onCreated : () => vo
                 }
 
             } catch (e) {
-                console.log(e)
                 return setError("Error: "+ e);
             }
         }

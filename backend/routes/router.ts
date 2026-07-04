@@ -9,9 +9,9 @@ import {
     deleteHabit,
     checkLogin,
     recordCompletion,
-    getNumberOfCompletions,
     isCompleted,
-    currentStreak
+    undoCompletion,
+    stats
  } from "../controller/controller"
 
 export const router = express.Router();
@@ -34,8 +34,8 @@ router.delete("/:id", deleteHabit)
 
 router.post("/habit-completed", recordCompletion)
 
-router.get("/completions/:id", getNumberOfCompletions)
-
 router.get("/is-completed/:id", isCompleted)
 
-router.get("/current-streak/:id", currentStreak)
+router.get("/stats/:id", stats)
+
+router.post("/undo-completion", undoCompletion)

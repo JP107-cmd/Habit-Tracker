@@ -297,11 +297,11 @@ export const recordCompletion = (req : any, res : any) => {
         const today = new Date().toLocaleDateString('en-CA')
         const exists = db.prepare(`
             SELECT id FROM habit_completions
-            WHERE id = (?) and completion_date = (?)
+            WHERE id = (?) AND completion_date = (?)
         `).get(habitId, today)
 
 
-        if (exists == null) {
+        if (exists != null) {
             return res.status(409).json({status: "habit already completed today"})
         }
         
@@ -313,44 +313,6 @@ export const recordCompletion = (req : any, res : any) => {
 
         db.close();
         return res.status(200).json({status: "habit completion successfully recorded"});
-    } catch (e) {
-        return res.status(500).json({error: e});
-    }
-
-}
-
-export const getNumberOfCompletions = (req : any, res : any) => {
-
-    const id : number = getId(req.cookies.session);
-    if (!id) {
-        return res.status(401).json({error: "access denied, not logged into any user profile"});
-    }
-
-    const habitId : number = req.params.id;
-    if (!habitId) {
-        return res.status(400).json({error: "bad request"});
-    }
-
-    try {
-        const db = new Database("./database/database.db");
-
-        const habit = db.prepare(`
-            SELECT name FROM habits 
-            WHERE id = (?) AND user_id = (?)
-        `).get(habitId, id);
-
-        if (!habit) {
-            return res.status(400).json({error: "no habit found"});
-        }
-        
-        const count = db.prepare(`
-            SELECT COUNT(*)  
-            FROM habit_completions
-            WHERE habit_id = (?)
-        `).get(habitId);
-
-        db.close();
-        return res.status(200).json({count});
     } catch (e) {
         return res.status(500).json({error: e});
     }
@@ -399,7 +361,7 @@ export const isCompleted = (req : any, res : any) => {
 
 }
 
-export const currentStreak = (req : any, res : any) => {
+export const stats = (req : any, res : any) => {
 
     const id : number = getId(req.cookies.session);
     if (!id) {
@@ -440,12 +402,72 @@ export const currentStreak = (req : any, res : any) => {
             }
 
             streak++;
-            date = sub(date, {days : 1})
+            date = sub(date, {days : 1});
         }
 
+        const count = db.prepare(`
+            SELECT COUNT(*)  
+            FROM habit_completions
+            WHERE habit_id = (?)
+        `).get(habitId) as {'COUNT(*)': number};
+
+        const stats = {
+            currentStreak : streak,
+            numberOfCompletions : count['COUNT(*)']
+        }
 
         db.close();
-        return res.status(200).json({currentStreak : streak});
+        return res.status(200).json({stats});
+    } catch (e) {
+        return res.status(500).json({error: e});
+    }
+
+}
+
+export const undoCompletion = (req : any, res : any) => {
+
+    const id : number = getId(req.cookies.session);
+    if (!id) {
+        return res.status(401).json({error: "access denied, not logged into any user profile"});
+    }
+
+    const habitId : number = req.body.id;
+    if (!habitId) {
+        return res.status(400).json({error: "bad request"});
+    }
+
+    try {
+        const db = new Database("./database/database.db");
+
+        const habit = db.prepare(`
+            SELECT name FROM habits 
+            WHERE id = (?) AND user_id = (?)
+        `).get(habitId, id);
+
+        if (!habit) {
+            return res.status(400).json({error: "no habit found"});
+        }
+
+        const today = new Date().toLocaleDateString('en-CA')
+        const exists = db.prepare(`
+            SELECT id FROM habit_completions
+            WHERE id = (?) and completion_date = (?)
+        `).get(habitId, today)
+
+
+        if (exists != null) {
+            return res.status(409).json({status: "habit already completed today"})
+        }
+        
+        const insert = db.prepare(`
+            DELETE FROM habit_completions
+            WHERE habit_id = (?) AND completion_date = (?)
+        `)
+
+        insert.run(habitId, today)
+
+        db.close();
+        return res.status(200).json({status: "habit completion successfully undone"});
     } catch (e) {
         return res.status(500).json({error: e});
     }
