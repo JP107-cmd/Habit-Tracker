@@ -13,7 +13,7 @@ export const login = (req: any, res: any) => {
 
     const name : string = req.body.name;
 
-    if (!name) res.status(400).json({error: "bad request"});
+    if (!name) return res.status(400).json({error: "bad request"});
 
     try {
     const db = new Database("./database/database.db");
@@ -90,11 +90,43 @@ export const getHabits = (req: any, res: any) => {
         const habits = db.prepare(`
             SELECT id, name, description, icon, createdAt FROM habits
             WHERE user_id = (?);
-        `).all(id);
+        `).all(id) as Array<{ id: number; name: string; description: string; icon: string; createdAt: string }>;
+
+        const today = new Date().toLocaleDateString('en-CA');
+
+        const countStmt = db.prepare(`
+            SELECT COUNT(*) AS count FROM habit_completions WHERE habit_id = (?)
+        `);
+        const datesStmt = db.prepare(`
+            SELECT completion_date FROM habit_completions
+            WHERE habit_id = (?)
+            ORDER BY completion_date DESC
+        `);
+
+        const enriched = habits.map((habit) => {
+            const { count } = countStmt.get(habit.id) as { count: number };
+            const dates = (datesStmt.all(habit.id) as Array<{ completion_date: string }>)
+                .map((row) => row.completion_date);
+            const dateSet = new Set(dates);
+
+            let streak = 0;
+            let cursor = new Date();
+            while (dateSet.has(cursor.toLocaleDateString('en-CA'))) {
+                streak++;
+                cursor = sub(cursor, { days: 1 });
+            }
+
+            return {
+                ...habit,
+                completedToday: dateSet.has(today),
+                currentStreak: streak,
+                numberOfCompletions: count,
+            };
+        });
 
         db.close()
 
-        return res.status(200).json({habits: habits});
+        return res.status(200).json({habits: enriched});
     } catch (e) {
         return res.status(500).json({error: e});
     }
@@ -137,6 +169,7 @@ export const createNewHabit = (req: any, res: any) => {
     `);
     insert.run(id, name, description, icon);
 
+    db.close();
     return res.status(200).json({status: "habit successfully uploaded"});
     } catch (e) {
         return res.status(500).json({error: e});
@@ -297,14 +330,15 @@ export const recordCompletion = (req : any, res : any) => {
         const today = new Date().toLocaleDateString('en-CA')
         const exists = db.prepare(`
             SELECT id FROM habit_completions
-            WHERE id = (?) AND completion_date = (?)
+            WHERE habit_id = (?) AND completion_date = (?)
         `).get(habitId, today)
 
 
         if (exists != null) {
+            db.close();
             return res.status(409).json({status: "habit already completed today"})
         }
-        
+
         const insert = db.prepare(`
             INSERT OR IGNORE INTO habit_completions (habit_id) VALUES (?)
         `)
@@ -449,24 +483,20 @@ export const undoCompletion = (req : any, res : any) => {
         }
 
         const today = new Date().toLocaleDateString('en-CA')
-        const exists = db.prepare(`
-            SELECT id FROM habit_completions
-            WHERE id = (?) and completion_date = (?)
-        `).get(habitId, today)
 
-
-        if (exists != null) {
-            return res.status(409).json({status: "habit already completed today"})
-        }
-        
-        const insert = db.prepare(`
+        const del = db.prepare(`
             DELETE FROM habit_completions
             WHERE habit_id = (?) AND completion_date = (?)
         `)
 
-        insert.run(habitId, today)
+        const result = del.run(habitId, today)
 
         db.close();
+
+        if (result.changes === 0) {
+            return res.status(404).json({status: "no completion recorded for today"});
+        }
+
         return res.status(200).json({status: "habit completion successfully undone"});
     } catch (e) {
         return res.status(500).json({error: e});

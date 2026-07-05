@@ -10,7 +10,10 @@ export type Habit = {
     name : string,
     description: string,
     icon: string,
-    createdAt: string
+    createdAt: string,
+    completedToday: boolean,
+    currentStreak: number,
+    numberOfCompletions: number
 }
 
 export default function Dashboard() {

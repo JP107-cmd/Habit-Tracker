@@ -1,86 +1,65 @@
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow'
-import { useCallback, useState, useEffect } from 'react';
-import Loading from "./Loading";
+import { useEffect, useState } from 'react';
+import type { Habit } from "../pages/Dashboard";
 import { api } from "./api";
-
-type Habit = {
-    id : number,
-    name : string,
-    description: string,
-    icon: string,
-    createdAt: string
-}
 
 function getFormattedTime(time : string) {
     return formatDistanceToNow(new Date(time))
 }
 
-export default function HabitCard({ habit, onEdit, onDeleted } : {habit : Habit, onEdit : (habit : Habit) => void, onDeleted : () => void}) {
-    const [completed, setCompleted] = useState<boolean>(false)
-    const { id, name, description, icon, createdAt } = habit;
-    const [loading, setLoading] = useState<boolean>(true);
-    const [currentStreak, setCurrentStreak] = useState<number | null>(null);
-    const [numberOfCompletions, setNumberOfCompletions] = useState<number | null>(null);
+export default function HabitCard({ habit, onEdit, onChanged } : {habit : Habit, onEdit : (habit : Habit) => void, onChanged : () => void}) {
+    const { id, name, description, icon, createdAt, completedToday, currentStreak, numberOfCompletions } = habit;
+    const [busy, setBusy] = useState<boolean>(false);
 
-    const handleDelete = async () => {
-        try {
-            await api.del("/" + id);
-            onDeleted();
-        } catch (e) {
-            return;
-        }
-    }
-
-    const checkCompletion = useCallback(async () => {
-        try {
-            setLoading(true);
-            const data = await api.get<{ completedToday: boolean }>("/is-completed/" + id);
-            setCompleted(data.completedToday);
-            setLoading(false);
-        } catch (e) {
-            return;
-        }
-    }, [id]);
+    // Optimistic view of completion state; reconciled with props after each refetch.
+    const [optimistic, setOptimistic] = useState<{
+        completedToday: boolean;
+        currentStreak: number;
+        numberOfCompletions: number;
+    } | null>(null);
 
     useEffect(() => {
-        checkCompletion()
-        getStats()
-    }, [checkCompletion])
+        setOptimistic(null);
+    }, [completedToday, currentStreak, numberOfCompletions]);
 
+    const view = optimistic ?? { completedToday, currentStreak, numberOfCompletions };
 
-    const recordCompletion = async () => {
+    const handleDelete = async () => {
+        if (busy) return;
+        setBusy(true);
         try {
-            await api.post("/habit-completed", { id: habit.id });
-            checkCompletion();
-            return getStats();
+            await api.del("/" + id);
+            onChanged();
         } catch (e) {
-            return;
+            setBusy(false);
         }
     }
 
-    const recordUndo = async () => {
+    const toggleCompletion = async () => {
+        if (busy) return;
+        setBusy(true);
+
+        const next = view.completedToday
+            ? {
+                completedToday: false,
+                currentStreak: Math.max(0, view.currentStreak - 1),
+                numberOfCompletions: Math.max(0, view.numberOfCompletions - 1),
+            }
+            : {
+                completedToday: true,
+                currentStreak: view.currentStreak + 1,
+                numberOfCompletions: view.numberOfCompletions + 1,
+            };
+        setOptimistic(next);
+
         try {
-            await api.post("/undo-completion", { id: habit.id });
-            checkCompletion();
-            return getStats();
+            await api.post(view.completedToday ? "/undo-completion" : "/habit-completed", { id });
+            onChanged();
         } catch (e) {
-            return;
+            setOptimistic(null); // revert on failure
+        } finally {
+            setBusy(false);
         }
-    }
-
-    const getStats = async () => {
-        try {
-            const data = await api.get<{ stats: { currentStreak: number; numberOfCompletions: number } }>("/stats/" + id);
-            setCurrentStreak(data.stats.currentStreak);
-            setNumberOfCompletions(data.stats.numberOfCompletions);
-        } catch (e) {
-            return;
-        }
-    }
-
-
-    if (loading) {
-        return <div className="flex flex-col gap-3 p-5 bg-[#262626] rounded-2xl border border-white/10 hover:border-white/20 transition-colors"><Loading/></div>
     }
 
     return (
@@ -96,23 +75,25 @@ export default function HabitCard({ habit, onEdit, onDeleted } : {habit : Habit,
             </div>
             <div className="space-y-1">
                 <p className="text-neutral-300">{description}</p>
-                <p className="text-xs text-neutral-500">Times completed: {numberOfCompletions}</p>
-                <p className="text-xs text-neutral-500">Current streak: {currentStreak}</p>
+                <p className="text-xs text-neutral-500">Times completed: {view.numberOfCompletions}</p>
+                <p className="text-xs text-neutral-500">Current streak: {view.currentStreak}</p>
                 <p className="text-xs text-neutral-500">Created: {getFormattedTime(createdAt)} ago</p>
             </div>
             <div className="mt-1 flex flex-row justify-between">
-                { !completed ?
-                    <button className="w-fit px-5 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 
-                    transition-colors"
-                    onClick={recordCompletion}
+                { !view.completedToday ?
+                    <button className="w-fit px-5 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-500
+                    transition-colors disabled:opacity-60"
+                    onClick={toggleCompletion}
+                    disabled={busy}
                     >Complete Habit</button>
                     :
-                    <button className="w-fit px-5 py-2 text-sm font-medium rounded-lg bg-gray-400 text-white 
-                    transition-colors"
-                    onClick={recordUndo}
+                    <button className="w-fit px-5 py-2 text-sm font-medium rounded-lg bg-gray-400 text-white
+                    transition-colors disabled:opacity-60"
+                    onClick={toggleCompletion}
+                    disabled={busy}
                     >Undo</button>
                 }
-                <button onClick={handleDelete} className="px-3 py-1.5 text-sm font-medium rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors w-fit flex flex-row items-center gap-1.5">
+                <button onClick={handleDelete} disabled={busy} className="px-3 py-1.5 text-sm font-medium rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors w-fit flex flex-row items-center gap-1.5 disabled:opacity-60">
                     <div className="w-4 shrink-0 flex items-center">
                         <img src="delete.svg"></img>
                     </div>

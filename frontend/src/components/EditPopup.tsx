@@ -84,6 +84,7 @@ export default function EditPopup({ onUpdate, onClose, habit } : { onUpdate : ()
                         onChange={(e) => setIcon(e.target.value)} placeholder="Icon to represent your habit (please put an emoji I have no type-checking 🥺)">
                         </input>
                     </div>
+                    {error && <p className="text-red-400 text-sm">{error}</p>}
                     <button
                     type="submit" className="w-fit px-5 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors"
                     >Update</button>

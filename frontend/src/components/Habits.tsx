@@ -33,7 +33,7 @@ export default function Habits({ habits, loading, onEdit, error, onChanged, onNe
                     <HabitCard key={habit.id}
                         habit={habit}
                         onEdit={onEdit}
-                        onDeleted={onChanged}
+                        onChanged={onChanged}
                     />
                 )}
         </div>
