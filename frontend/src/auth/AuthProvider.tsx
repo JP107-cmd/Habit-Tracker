@@ -1,18 +1,26 @@
-import { useState, useEffect, useContext, createContext } from "react";
+import { useState, useEffect, useContext, createContext, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { api } from "../components/api";
 
-const AuthContext = createContext<any | null>(null);
+type AuthContextValue = {
+    user: number | null;
+    isLoggedIn: boolean;
+    loading: boolean;
+    refreshAuth: () => Promise<void>;
+    logout: () => Promise<void>;
+};
 
-export default function AuthProvider({  children }: { children : any}) {
-    const [user, setUser] = useState<object | null>(null);
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export default function AuthProvider({ children }: { children: ReactNode }) {
+    const [user, setUser] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
   async function refreshAuth() {
     setLoading(true);
     try {
-      const data = await api.get<any>("/auth/me");
+      const data = await api.get<{ id: number }>("/auth/me");
       setUser(data.id);
     } catch {
         setUser(null);
@@ -33,7 +41,7 @@ export default function AuthProvider({  children }: { children : any}) {
     }
     setUser(null);
     refreshAuth()
-    return navigate("/");
+    navigate("/");
   }
 
   return (
@@ -51,6 +59,10 @@ export default function AuthProvider({  children }: { children : any}) {
   );
 }
 
-export function useAuth() {
-    return useContext(AuthContext);
+export function useAuth(): AuthContextValue {
+    const ctx = useContext(AuthContext);
+    if (!ctx) {
+        throw new Error("useAuth must be used within an AuthProvider");
+    }
+    return ctx;
 }

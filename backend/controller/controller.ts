@@ -1,22 +1,18 @@
-import Database from 'better-sqlite3';
+import type { Request, Response } from 'express';
 import { sub } from 'date-fns';
+import { db } from '../database/connection';
 
-const getId = (cookie: any) => {
-    try {
-    return cookie.user.id;
-    } catch (e) {
-        return null;
-    }
+const getId = (session: { user?: { id?: number } } | undefined): number | null => {
+    return session?.user?.id ?? null;
 }
 
-export const login = (req: any, res: any) => {
+export const login = (req: Request, res: Response) => {
 
     const name : string = req.body.name;
 
     if (!name) return res.status(400).json({error: "bad request"});
 
     try {
-    const db = new Database("./database/database.db");
     const insert = db.prepare(`
         INSERT OR IGNORE INTO users (name) VALUES (?)
     `);
@@ -28,21 +24,18 @@ export const login = (req: any, res: any) => {
 
      res.cookie("session", {user}, {
             httpOnly: true,
-            secure: false, 
+            secure: false,
             sameSite: "lax",
             path: "/",
         });
 
-
-    db.close();   
-        
     return res.status(200).json({status: "login successful"});
     } catch (e) {
         return res.status(500).json({error: e});
-    }   
+    }
 }
 
-export const logout = (req: any, res: any) => {
+export const logout = (req: Request, res: Response) => {
     try {
     res.clearCookie('session')
     return res.status(200).json({status: 'successfully logged out'});
@@ -51,16 +44,15 @@ export const logout = (req: any, res: any) => {
     }
 }
 
-export const checkLogin = (req: any, res: any) => {
+export const checkLogin = (req: Request, res: Response) => {
 
-    const id : number = getId(req.cookies.session);
+    const id : number | null = getId(req.cookies.session);
 
     if (id ===  null) {
         return res.status(401).json({error: "user not logged into any user profile"});
     }
 
     try{
-        const db = new Database("./database/database.db");
         const user  = db.prepare(`
             SELECT name FROM users WHERE id = (?)
         `).get(id);
@@ -69,24 +61,21 @@ export const checkLogin = (req: any, res: any) => {
             return res.status(401).json({error: "user not logged into any user profile"});
         }
 
-        db.close()
-
         return res.status(200).json({id: id});
     } catch (e) {
         return res.status(500).json({error: e});
     }
 }
 
-export const getHabits = (req: any, res: any) => {
+export const getHabits = (req: Request, res: Response) => {
 
-    const id : number = getId(req.cookies.session);
+    const id : number | null = getId(req.cookies.session);
 
     if (id ===  null) {
         return res.status(401).json({error: "access denied, not logged into any user profile"});
     }
 
     try{
-        const db = new Database("./database/database.db");
         const habits = db.prepare(`
             SELECT id, name, description, icon, createdAt FROM habits
             WHERE user_id = (?);
@@ -124,17 +113,15 @@ export const getHabits = (req: any, res: any) => {
             };
         });
 
-        db.close()
-
         return res.status(200).json({habits: enriched});
     } catch (e) {
         return res.status(500).json({error: e});
     }
 }
 
-export const createNewHabit = (req: any, res: any) => {
+export const createNewHabit = (req: Request, res: Response) => {
 
-    const id : number = getId(req.cookies.session)
+    const id : number | null = getId(req.cookies.session)
     const name : string = req.body.name;
     const description : string = req.body.description;
     const icon : string = req.body.icon;
@@ -162,59 +149,53 @@ export const createNewHabit = (req: any, res: any) => {
     }
 
     try {
-    const db = new Database("./database/database.db");
-
     const insert = db.prepare(`
         INSERT OR IGNORE INTO habits (user_id, name, description, icon) VALUES (?, ?, ?, ?)
     `);
     insert.run(id, name, description, icon);
 
-    db.close();
     return res.status(200).json({status: "habit successfully uploaded"});
     } catch (e) {
         return res.status(500).json({error: e});
     }
-}   
+}
 
-export const getHabit = (req: any, res: any) => {
+export const getHabit = (req: Request, res: Response) => {
 
-    const id : number = getId(req.cookies.session);
+    const id : number | null = getId(req.cookies.session);
     if (!id) {
         return res.status(401).json({error: "access denied, not logged into any user profile"});
     }
 
-    const habitId : number = req.params.id;
+    const habitId : number = Number(req.params.id);
     if (!habitId) {
         return res.status(400).json({error: "bad request"});
     }
 
     try {
-        const db = new Database("./database/database.db");
-
         const habit = db.prepare(`
-            SELECT name, description, icon, createdAt FROM habits 
+            SELECT name, description, icon, createdAt FROM habits
             WHERE id = (?) AND user_id = (?);
         `).get(habitId, id);
 
-        db.close();
         return res.status(200).json(habit);
     } catch (e) {
         return res.status(500).json({error: e});
     }
-}   
+}
 
-export const updateHabit = (req: any, res: any) => {
+export const updateHabit = (req: Request, res: Response) => {
 
-    
+
     const name : string = req.body.name;
     const description : string = req.body.description;
     const icon : string = req.body.icon;
-    const id : number = getId(req.cookies.session);
+    const id : number | null = getId(req.cookies.session);
     if (!id) {
         return res.status(401).json({error: "access denied, not logged into any user profile"});
     }
 
-    const habitId : number = req.params.id;
+    const habitId : number = Number(req.params.id);
     if (!habitId) {
         return res.status(400).json({error: "bad request"});
     }
@@ -238,10 +219,8 @@ export const updateHabit = (req: any, res: any) => {
     }
 
     try {
-        const db = new Database("./database/database.db");
-
         const habit = db.prepare(`
-            SELECT name FROM habits 
+            SELECT name FROM habits
             WHERE id = (?) AND user_id = (?);
         `).get(habitId, id);
 
@@ -250,8 +229,8 @@ export const updateHabit = (req: any, res: any) => {
         }
 
         const update = db.prepare(`
-            UPDATE habits 
-            SET 
+            UPDATE habits
+            SET
                 name = (?),
                 description = (?),
                 icon = (?)
@@ -259,30 +238,27 @@ export const updateHabit = (req: any, res: any) => {
         `);
         update.run(name, description, icon, habitId, id);
 
-        db.close();
         return res.status(200).json({status: "habit successfully updated"});
     } catch (e) {
         return res.status(500).json({error: e});
     }
 }
 
-export const deleteHabit = (req: any, res: any) => {
+export const deleteHabit = (req: Request, res: Response) => {
 
-    const id : number = getId(req.cookies.session);
+    const id : number | null = getId(req.cookies.session);
     if (!id) {
         return res.status(401).json({error: "access denied, not logged into any user profile"});
     }
 
-    const habitId : number = req.params.id;
+    const habitId : number = Number(req.params.id);
     if (!habitId) {
         return res.status(400).json({error: "bad request"});
     }
 
     try {
-        const db = new Database("./database/database.db");
-
         const habit = db.prepare(`
-            SELECT name FROM habits 
+            SELECT name FROM habits
             WHERE id = (?) AND user_id = (?);
         `).get(habitId, id);
 
@@ -290,22 +266,28 @@ export const deleteHabit = (req: any, res: any) => {
             return res.status(400).json({error: "no habit found"});
         }
 
-        const update = db.prepare(`
-            DELETE FROM habits
-            WHERE id = (?) AND user_id = (?)
-        `)
-        update.run(habitId, id);
+        // Remove the habit's completion records before the habit itself, since
+        // habit_completions.habit_id references habits(id). Wrapped in a
+        // transaction so both deletes succeed or neither does.
+        const deleteHabitAndCompletions = db.transaction((habitId: number, userId: number) => {
+            db.prepare(`
+                DELETE FROM habit_completions WHERE habit_id = (?)
+            `).run(habitId);
+            db.prepare(`
+                DELETE FROM habits WHERE id = (?) AND user_id = (?)
+            `).run(habitId, userId);
+        });
+        deleteHabitAndCompletions(habitId, id);
 
-        db.close();
         return res.status(200).json({status: "habit successfully deleted"});
     } catch (e) {
         return res.status(500).json({error: e});
     }
 }
 
-export const recordCompletion = (req : any, res : any) => {
+export const recordCompletion = (req : Request, res : Response) => {
 
-    const id : number = getId(req.cookies.session);
+    const id : number | null = getId(req.cookies.session);
     if (!id) {
         return res.status(401).json({error: "access denied, not logged into any user profile"});
     }
@@ -316,10 +298,8 @@ export const recordCompletion = (req : any, res : any) => {
     }
 
     try {
-        const db = new Database("./database/database.db");
-
         const habit = db.prepare(`
-            SELECT name FROM habits 
+            SELECT name FROM habits
             WHERE id = (?) AND user_id = (?)
         `).get(habitId, id);
 
@@ -335,7 +315,6 @@ export const recordCompletion = (req : any, res : any) => {
 
 
         if (exists != null) {
-            db.close();
             return res.status(409).json({status: "habit already completed today"})
         }
 
@@ -345,7 +324,6 @@ export const recordCompletion = (req : any, res : any) => {
 
         insert.run(habitId)
 
-        db.close();
         return res.status(200).json({status: "habit completion successfully recorded"});
     } catch (e) {
         return res.status(500).json({error: e});
@@ -353,30 +331,28 @@ export const recordCompletion = (req : any, res : any) => {
 
 }
 
-export const isCompleted = (req : any, res : any) => {
+export const isCompleted = (req : Request, res : Response) => {
 
-    const id : number = getId(req.cookies.session);
+    const id : number | null = getId(req.cookies.session);
     if (!id) {
         return res.status(401).json({error: "access denied, not logged into any user profile"});
     }
 
-    const habitId : number = req.params.id;
+    const habitId : number = Number(req.params.id);
     if (!habitId) {
         return res.status(400).json({error: "bad request"});
     }
 
     try {
-        const db = new Database("./database/database.db");
-
         const habit = db.prepare(`
-            SELECT name FROM habits 
+            SELECT name FROM habits
             WHERE id = (?) AND user_id = (?)
         `).get(habitId, id);
 
         if (!habit) {
             return res.status(400).json({error: "no habit found"});
         }
-        
+
         const today = new Date().toLocaleDateString('en-CA')
 
         const exists = db.prepare(`
@@ -386,8 +362,6 @@ export const isCompleted = (req : any, res : any) => {
             AND completion_date = (?)
         `).get(habitId, today);
 
-
-        db.close();
         return res.status(200).json({completedToday : (!! exists)});
     } catch (e) {
         return res.status(500).json({error: e});
@@ -395,37 +369,35 @@ export const isCompleted = (req : any, res : any) => {
 
 }
 
-export const stats = (req : any, res : any) => {
+export const stats = (req : Request, res : Response) => {
 
-    const id : number = getId(req.cookies.session);
+    const id : number | null = getId(req.cookies.session);
     if (!id) {
         return res.status(401).json({error: "access denied, not logged into any user profile"});
     }
 
-    const habitId : number = req.params.id;
+    const habitId : number = Number(req.params.id);
     if (!habitId) {
         return res.status(400).json({error: "bad request"});
     }
 
     try {
-        const db = new Database("./database/database.db");
-
         const habit = db.prepare(`
-            SELECT name FROM habits 
+            SELECT name FROM habits
             WHERE id = (?) AND user_id = (?)
         `).get(habitId, id);
 
         if (!habit) {
             return res.status(400).json({error: "no habit found"});
         }
-        
+
         let date = new Date();
 
         let streak : number = 0;
 
         while (true) {
             const habit = db.prepare(`
-                SELECT * 
+                SELECT *
                 FROM habit_completions
                 WHERE habit_id = (?)
                 AND completion_date = (?)
@@ -440,7 +412,7 @@ export const stats = (req : any, res : any) => {
         }
 
         const count = db.prepare(`
-            SELECT COUNT(*)  
+            SELECT COUNT(*)
             FROM habit_completions
             WHERE habit_id = (?)
         `).get(habitId) as {'COUNT(*)': number};
@@ -450,7 +422,6 @@ export const stats = (req : any, res : any) => {
             numberOfCompletions : count['COUNT(*)']
         }
 
-        db.close();
         return res.status(200).json({stats});
     } catch (e) {
         return res.status(500).json({error: e});
@@ -458,9 +429,9 @@ export const stats = (req : any, res : any) => {
 
 }
 
-export const undoCompletion = (req : any, res : any) => {
+export const undoCompletion = (req : Request, res : Response) => {
 
-    const id : number = getId(req.cookies.session);
+    const id : number | null = getId(req.cookies.session);
     if (!id) {
         return res.status(401).json({error: "access denied, not logged into any user profile"});
     }
@@ -471,10 +442,8 @@ export const undoCompletion = (req : any, res : any) => {
     }
 
     try {
-        const db = new Database("./database/database.db");
-
         const habit = db.prepare(`
-            SELECT name FROM habits 
+            SELECT name FROM habits
             WHERE id = (?) AND user_id = (?)
         `).get(habitId, id);
 
@@ -490,8 +459,6 @@ export const undoCompletion = (req : any, res : any) => {
         `)
 
         const result = del.run(habitId, today)
-
-        db.close();
 
         if (result.changes === 0) {
             return res.status(404).json({status: "no completion recorded for today"});
