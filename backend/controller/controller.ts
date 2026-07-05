@@ -1,35 +1,94 @@
 import type { Request, Response } from 'express';
 import { sub } from 'date-fns';
 import { db } from '../database/connection';
+import { hashPassword, verifyPassword } from '../auth/password';
+import { createSession, deleteSession, SESSION_TTL_MS } from '../auth/session';
 
-const getId = (session: { user?: { id?: number } } | undefined): number | null => {
-    return session?.user?.id ?? null;
+const MIN_PASSWORD_LENGTH = 8;
+const MAX_PASSWORD_LENGTH = 72; // bcrypt silently truncates input beyond 72 bytes
+
+function setSessionCookie(res: Response, token: string) {
+    res.cookie("session", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        signed: true,
+        path: "/",
+        maxAge: SESSION_TTL_MS,
+    });
 }
 
-export const login = (req: Request, res: Response) => {
+export const signup = async (req: Request, res: Response) => {
 
-    const name : string = req.body.name;
+    const username : string = req.body.username;
+    const password : string = req.body.password;
 
-    if (!name) return res.status(400).json({error: "bad request"});
+    if (!username || !password) {
+        return res.status(400).json({error: "username and password are required"});
+    }
+
+    if (password.length < MIN_PASSWORD_LENGTH) {
+        return res.status(400).json({error: `password must be at least ${MIN_PASSWORD_LENGTH} characters`});
+    }
+
+    if (password.length > MAX_PASSWORD_LENGTH) {
+        return res.status(400).json({error: `password must be at most ${MAX_PASSWORD_LENGTH} characters`});
+    }
 
     try {
-    const insert = db.prepare(`
-        INSERT OR IGNORE INTO users (name) VALUES (?)
-    `);
-    insert.run(name);
+        const existing = db.prepare(`
+            SELECT id FROM users WHERE username = (?)
+        `).get(username);
 
-    const user = db.prepare(`
-         SELECT id FROM USERS WHERE name = (?);
-    `).get(name);
+        if (existing) {
+            return res.status(409).json({error: "username already taken"});
+        }
 
-     res.cookie("session", {user}, {
-            httpOnly: true,
-            secure: false,
-            sameSite: "lax",
-            path: "/",
-        });
+        const passwordHash = await hashPassword(password);
 
-    return res.status(200).json({status: "login successful"});
+        const insert = db.prepare(`
+            INSERT INTO users (username, password_hash) VALUES (?, ?)
+        `);
+        const result = insert.run(username, passwordHash);
+        const userId = Number(result.lastInsertRowid);
+
+        const { token } = createSession(userId);
+        setSessionCookie(res, token);
+
+        return res.status(201).json({status: "signup successful"});
+    } catch (e) {
+        return res.status(500).json({error: e});
+    }
+}
+
+export const login = async (req: Request, res: Response) => {
+
+    const username : string = req.body.username;
+    const password : string = req.body.password;
+
+    if (!username || !password) {
+        return res.status(400).json({error: "username and password are required"});
+    }
+
+    try {
+        const user = db.prepare(`
+            SELECT id, password_hash FROM users WHERE username = (?)
+        `).get(username) as { id: number; password_hash: string } | undefined;
+
+        if (!user) {
+            return res.status(401).json({error: "invalid username or password"});
+        }
+
+        const valid = await verifyPassword(password, user.password_hash);
+
+        if (!valid) {
+            return res.status(401).json({error: "invalid username or password"});
+        }
+
+        const { token } = createSession(user.id);
+        setSessionCookie(res, token);
+
+        return res.status(200).json({status: "login successful"});
     } catch (e) {
         return res.status(500).json({error: e});
     }
@@ -37,43 +96,24 @@ export const login = (req: Request, res: Response) => {
 
 export const logout = (req: Request, res: Response) => {
     try {
-    res.clearCookie('session')
-    return res.status(200).json({status: 'successfully logged out'});
+        const token = req.signedCookies.session;
+        if (token) {
+            deleteSession(token);
+        }
+        res.clearCookie('session', { path: "/" });
+        return res.status(200).json({status: 'successfully logged out'});
     } catch (e) {
         return res.status(500).json({error: e});
     }
 }
 
 export const checkLogin = (req: Request, res: Response) => {
-
-    const id : number | null = getId(req.cookies.session);
-
-    if (id ===  null) {
-        return res.status(401).json({error: "user not logged into any user profile"});
-    }
-
-    try{
-        const user  = db.prepare(`
-            SELECT name FROM users WHERE id = (?)
-        `).get(id);
-
-        if (!user) {
-            return res.status(401).json({error: "user not logged into any user profile"});
-        }
-
-        return res.status(200).json({id: id});
-    } catch (e) {
-        return res.status(500).json({error: e});
-    }
+    return res.status(200).json({id: req.userId});
 }
 
 export const getHabits = (req: Request, res: Response) => {
 
-    const id : number | null = getId(req.cookies.session);
-
-    if (id ===  null) {
-        return res.status(401).json({error: "access denied, not logged into any user profile"});
-    }
+    const id = req.userId;
 
     try{
         const habits = db.prepare(`
@@ -121,14 +161,10 @@ export const getHabits = (req: Request, res: Response) => {
 
 export const createNewHabit = (req: Request, res: Response) => {
 
-    const id : number | null = getId(req.cookies.session)
+    const id = req.userId;
     const name : string = req.body.name;
     const description : string = req.body.description;
     const icon : string = req.body.icon;
-
-    if (!id) {
-        return res.status(401).json({error: "access denied, not logged into any user profile"});
-    }
 
     let missingFields: Array<string> = [];
 
@@ -162,10 +198,7 @@ export const createNewHabit = (req: Request, res: Response) => {
 
 export const getHabit = (req: Request, res: Response) => {
 
-    const id : number | null = getId(req.cookies.session);
-    if (!id) {
-        return res.status(401).json({error: "access denied, not logged into any user profile"});
-    }
+    const id = req.userId;
 
     const habitId : number = Number(req.params.id);
     if (!habitId) {
@@ -186,14 +219,10 @@ export const getHabit = (req: Request, res: Response) => {
 
 export const updateHabit = (req: Request, res: Response) => {
 
-
     const name : string = req.body.name;
     const description : string = req.body.description;
     const icon : string = req.body.icon;
-    const id : number | null = getId(req.cookies.session);
-    if (!id) {
-        return res.status(401).json({error: "access denied, not logged into any user profile"});
-    }
+    const id = req.userId;
 
     const habitId : number = Number(req.params.id);
     if (!habitId) {
@@ -246,10 +275,7 @@ export const updateHabit = (req: Request, res: Response) => {
 
 export const deleteHabit = (req: Request, res: Response) => {
 
-    const id : number | null = getId(req.cookies.session);
-    if (!id) {
-        return res.status(401).json({error: "access denied, not logged into any user profile"});
-    }
+    const id = req.userId;
 
     const habitId : number = Number(req.params.id);
     if (!habitId) {
@@ -287,10 +313,7 @@ export const deleteHabit = (req: Request, res: Response) => {
 
 export const recordCompletion = (req : Request, res : Response) => {
 
-    const id : number | null = getId(req.cookies.session);
-    if (!id) {
-        return res.status(401).json({error: "access denied, not logged into any user profile"});
-    }
+    const id = req.userId;
 
     const habitId : number = req.body.id;
     if (!habitId) {
@@ -333,10 +356,7 @@ export const recordCompletion = (req : Request, res : Response) => {
 
 export const isCompleted = (req : Request, res : Response) => {
 
-    const id : number | null = getId(req.cookies.session);
-    if (!id) {
-        return res.status(401).json({error: "access denied, not logged into any user profile"});
-    }
+    const id = req.userId;
 
     const habitId : number = Number(req.params.id);
     if (!habitId) {
@@ -371,10 +391,7 @@ export const isCompleted = (req : Request, res : Response) => {
 
 export const stats = (req : Request, res : Response) => {
 
-    const id : number | null = getId(req.cookies.session);
-    if (!id) {
-        return res.status(401).json({error: "access denied, not logged into any user profile"});
-    }
+    const id = req.userId;
 
     const habitId : number = Number(req.params.id);
     if (!habitId) {
@@ -431,10 +448,7 @@ export const stats = (req : Request, res : Response) => {
 
 export const undoCompletion = (req : Request, res : Response) => {
 
-    const id : number | null = getId(req.cookies.session);
-    if (!id) {
-        return res.status(401).json({error: "access denied, not logged into any user profile"});
-    }
+    const id = req.userId;
 
     const habitId : number = req.body.id;
     if (!habitId) {

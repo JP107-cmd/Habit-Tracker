@@ -1,3 +1,6 @@
 
 backend/node_modules
 .DS_store
+backend/.env
+.env
+backend/database/database.db
