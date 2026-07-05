@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { api } from "./api";
+import Modal from "./Modal";
 
 type newHabitType = {
     name : string,
@@ -12,7 +13,7 @@ export default function NewHabit({ onCreated, onClose } : { onCreated : () => vo
     const [description, setDescription] = useState<string>("");
     const [icon, setIcon] = useState<string>("");
     const [error, setError] = useState<string | null>();
-    const formStyling : string = "w-full mt-1.5 px-3 py-2 rounded-lg bg-[#161616] border border-white/10 text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-colors"
+    const formStyling : string = "w-full mt-1.5 px-3 py-2 rounded-lg bg-[#161616] border border-white/10 text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20 transition-colors"
 
     const handleSubmit = async (event: any) => {
         event.preventDefault();
@@ -56,42 +57,45 @@ export default function NewHabit({ onCreated, onClose } : { onCreated : () => vo
     }
 
     return (
-        <div className="fixed inset-0 z-50 m-auto h-fit w-full max-w-2xl p-6 rounded-2xl border border-white/10 bg-[#1e1e1e] shadow-[0_0_0_100vmax_rgba(0,0,0,0.7)]">
-            <div className="flex flex-row items-center justify-between">
-                <h1 className="text-lg font-semibold tracking-tight">Create a new Habit</h1>
-                <div className="w-5 shrink-0 cursor-pointer hover:opacity-70 transition-opacity" onClick={onClose}>
-                    <img src="x.svg"></img>
+        <Modal onClose={onClose} labelledBy="new-habit-title">
+            <div className="w-full max-w-2xl mx-auto p-6 rounded-2xl border border-white/10 bg-[#1e1e1e]">
+                <div className="flex flex-row items-center justify-between">
+                    <h1 id="new-habit-title" className="text-lg font-semibold tracking-tight">Create a new Habit</h1>
+                    <div className="w-5 shrink-0 cursor-pointer hover:opacity-70 transition-opacity" onClick={onClose}>
+                        <img src="x.svg"></img>
+                    </div>
+                </div>
+                <div>
+                    <form onSubmit={(e) => handleSubmit(e)} className="flex flex-col w-full mt-5 space-y-5">
+                        <div>
+                            <h1 className="text-sm font-medium text-neutral-400">Name</h1>
+                            <input
+                            autoFocus
+                            type="text" className={formStyling} value={name} id="name"
+                            onChange={(e) => setName(e.target.value)} placeholder="Name of your habit">
+                            </input>
+                        </div>
+                        <div>
+                            <h1 className="text-sm font-medium text-neutral-400">Description</h1>
+                            <input
+                            type="text" className={formStyling} value={description} id="description"
+                            onChange={(e) => setDescription(e.target.value)} placeholder="Description of your habit">
+                            </input>
+                        </div>
+                        <div>
+                            <h1 className="text-sm font-medium text-neutral-400">Icon</h1>
+                            <input
+                            type="text" className={formStyling} value={icon} id="icon"
+                            onChange={(e) => setIcon(e.target.value)} placeholder="Icon to represent your habit (please put an emoji I have no type-checking 🥺)">
+                            </input>
+                        </div>
+                        {error && <p className="text-red-400 text-sm">{error}</p>}
+                        <button
+                        type="submit" className="w-fit px-5 py-2 text-sm font-semibold rounded-lg bg-gold-500 text-black hover:bg-gold-400 transition-colors"
+                        >Create</button>
+                    </form>
                 </div>
             </div>
-            <div>
-                <form onSubmit={(e) => handleSubmit(e)} className="flex flex-col w-full mt-5 space-y-5">
-                    <div>
-                        <h1 className="text-sm font-medium text-neutral-400">Name</h1>
-                        <input
-                        type="text" className={formStyling} value={name} id="name"
-                        onChange={(e) => setName(e.target.value)} placeholder="Name of your habit">
-                        </input>
-                    </div>
-                    <div>
-                        <h1 className="text-sm font-medium text-neutral-400">Description</h1>
-                        <input
-                        type="text" className={formStyling} value={description} id="description"
-                        onChange={(e) => setDescription(e.target.value)} placeholder="Description of your habit">
-                        </input>
-                    </div>
-                    <div>
-                        <h1 className="text-sm font-medium text-neutral-400">Icon</h1>
-                        <input
-                        type="text" className={formStyling} value={icon} id="icon"
-                        onChange={(e) => setIcon(e.target.value)} placeholder="Icon to represent your habit (please put an emoji I have no type-checking 🥺)">
-                        </input>
-                    </div>
-                    {error && <p className="text-red-400 text-sm">{error}</p>}
-                    <button
-                    type="submit" className="w-fit px-5 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors"
-                    >Create</button>
-                </form>
-            </div>
-        </div>
+        </Modal>
     )
 }

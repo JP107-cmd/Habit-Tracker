@@ -4,7 +4,11 @@ import type { Habit } from "../pages/Dashboard";
 import { api } from "./api";
 
 function getFormattedTime(time : string) {
-    return formatDistanceToNow(new Date(time))
+    // SQLite's CURRENT_TIMESTAMP stores UTC as "YYYY-MM-DD HH:MM:SS" with no
+    // timezone marker; JS parses that shape as local time, so it must be
+    // marked explicit UTC here or the displayed age is off by the viewer's
+    // UTC offset.
+    return formatDistanceToNow(new Date(time.replace(' ', 'T') + 'Z'))
 }
 
 export default function HabitCard({ habit, onEdit, onChanged } : {habit : Habit, onEdit : (habit : Habit) => void, onChanged : () => void}) {
@@ -63,10 +67,10 @@ export default function HabitCard({ habit, onEdit, onChanged } : {habit : Habit,
     }
 
     return (
-        <div className="flex flex-col gap-3 p-5 bg-[#262626] rounded-2xl border border-white/10 hover:border-white/20 transition-colors">
+        <div className="flex flex-col gap-3 p-5 bg-[#262626] rounded-2xl border border-white/10 hover:border-gold-500/30 transition-colors">
                 <div className="pb-3 border-b border-white/10 flex flex-row w-full justify-between">
                 <h1 className="font-semibold text-lg tracking-tight">{icon} {name}</h1>
-                <button onClick={() => onEdit(habit)} className="px-3 py-1.5 text-sm font-medium rounded-lg bg-white/5 text-neutral-300 border border-white/10 hover:bg-white/10 hover:text-white transition-colors w-fit flex flex-row items-center gap-1.5">
+                <button onClick={() => onEdit(habit)} className="px-3 py-1.5 text-sm font-medium rounded-lg bg-white/5 text-neutral-300 border border-white/10 hover:bg-white/10 hover:border-gold-500/30 hover:text-gold-300 transition-colors w-fit flex flex-row items-center gap-1.5">
                     <div className="w-4 shrink-0 flex items-center">
                         <img src="edit.svg"></img>
                     </div>
@@ -81,13 +85,13 @@ export default function HabitCard({ habit, onEdit, onChanged } : {habit : Habit,
             </div>
             <div className="mt-1 flex flex-row justify-between">
                 { !view.completedToday ?
-                    <button className="w-fit px-5 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-500
+                    <button className="w-fit px-5 py-2 text-sm font-semibold rounded-lg bg-gold-500 text-black hover:bg-gold-400
                     transition-colors disabled:opacity-60"
                     onClick={toggleCompletion}
                     disabled={busy}
                     >Complete Habit</button>
                     :
-                    <button className="w-fit px-5 py-2 text-sm font-medium rounded-lg bg-gray-400 text-white
+                    <button className="w-fit px-5 py-2 text-sm font-medium rounded-lg bg-white/5 text-gold-300 border border-gold-500/30 hover:bg-white/10
                     transition-colors disabled:opacity-60"
                     onClick={toggleCompletion}
                     disabled={busy}

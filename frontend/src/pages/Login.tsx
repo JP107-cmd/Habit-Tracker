@@ -80,10 +80,10 @@ export default function Login() {
         <div className="flex items-center justify-center min-h-screen px-4 flex-col gap-5">
             <div className="w-full max-w-sm p-8 bg-[#1e1e1e] rounded-2xl border border-white/10 shadow-2xl shadow-black/40 flex flex-col gap-6">
                 <div className="mx-auto w-20">
-                    <img src="/web-app-manifest-512x512.png" className="w-full rounded-2xl"/>
+                    <img src="/favicon.svg" className="w-full rounded-2xl"/>
                 </div>
                 <div className="space-y-1.5 text-center">
-                    <h1 className="text-3xl font-semibold tracking-tight">Habit Tracker</h1>
+                    <h1 className="text-3xl font-semibold tracking-tight bg-gradient-to-r from-gold-300 to-gold-600 bg-clip-text text-transparent">Habit Tracker</h1>
                     <h4 className="text-neutral-300">Track your habits!</h4>
                     <h6 className="text-sm text-neutral-500">
                         {mode === "login" ? "Log in to continue" : "Create an account to get started"}
@@ -91,24 +91,24 @@ export default function Login() {
                 </div>
                     <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
                         <input
-                        type="text" placeholder="Username" className="w-full px-3 py-2 rounded-lg bg-[#161616] border border-white/10 text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-colors" value={username} id="username"
+                        type="text" placeholder="Username" className="w-full px-3 py-2 rounded-lg bg-[#161616] border border-white/10 text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20 transition-colors" value={username} id="username"
                         onChange={(e) => setUsername(e.target.value)}>
                         </input>
                         <input
-                        type="password" placeholder="Password" className="w-full px-3 py-2 rounded-lg bg-[#161616] border border-white/10 text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-colors" value={password} id="password"
+                        type="password" placeholder="Password" className="w-full px-3 py-2 rounded-lg bg-[#161616] border border-white/10 text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20 transition-colors" value={password} id="password"
                         onChange={(e) => setPassword(e.target.value)}>
                         </input>
                         {mode === "signup" &&
                         <input
-                        type="password" placeholder="Confirm password" className="w-full px-3 py-2 rounded-lg bg-[#161616] border border-white/10 text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-colors" value={confirmPassword} id="confirmPassword"
+                        type="password" placeholder="Confirm password" className="w-full px-3 py-2 rounded-lg bg-[#161616] border border-white/10 text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:border-gold-500 focus:ring-2 focus:ring-gold-500/20 transition-colors" value={confirmPassword} id="confirmPassword"
                         onChange={(e) => setConfirmPassword(e.target.value)}>
                         </input>
                         }
-                        <button type="submit" className="w-full px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors">
+                        <button type="submit" className="w-full px-4 py-2 text-sm font-semibold rounded-lg bg-gold-500 text-black hover:bg-gold-400 transition-colors">
                             {mode === "login" ? "Log In" : "Sign Up"}
                         </button>
                     </form>
-                    <button type="button" onClick={toggleMode} className="text-sm text-neutral-400 hover:text-neutral-200 transition-colors">
+                    <button type="button" onClick={toggleMode} className="text-sm text-neutral-400 hover:text-gold-300 transition-colors">
                         {mode === "login" ? "Don't have an account? Sign up" : "Already have an account? Log in"}
                     </button>
                 </div>

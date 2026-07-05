@@ -25,7 +25,7 @@ export default function Habits({ habits, loading, onEdit, error, onChanged, onNe
                 <p className="font-bold text-3xl tracking-tight mb-2">Habits</p>
                 <button
                     onClick={onNewHabit}
-                    className="w-fit px-5 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors"
+                    className="w-fit px-5 py-2 text-sm font-semibold rounded-lg bg-gold-500 text-black hover:bg-gold-400 transition-colors"
                 >Create Habit</button>
             </div>
             {error && <p className="text-red-400">{error}</p>}
