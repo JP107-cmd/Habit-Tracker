@@ -1,5 +1,6 @@
 import { useState } from "react"
 import type { Habit } from "../pages/Dashboard";
+import { api } from "./api";
 
 type HabitType = {
     name : string,
@@ -42,20 +43,9 @@ export default function EditPopup({ onUpdate, onClose, habit } : { onUpdate : ()
 
         const sendReq = async () => {
             try {
-                const response = await fetch("http://localhost:3000/api/habits/"+habit.id,
-                    {
-                        credentials: "include",
-                        method: "PATCH",
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(updatedHabit)
-                    });
-                if (!response.ok) {
-                    throw new Error("Bad Request");
-                } else {
-                    onUpdate();
-                    onClose();
-                }
-
+                await api.patch("/" + habit.id, updatedHabit);
+                onUpdate();
+                onClose();
             } catch (e) {
                 return setError("Error: "+ e);
             }

@@ -2,6 +2,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router";
 import Loading from "../components/Loading";
+import { api } from "../components/api";
 
 export default function Login() {
     const [name, setName] = useState("");
@@ -39,21 +40,9 @@ export default function Login() {
  
         const sendReq = async () => {
             try {
-                const response = await fetch("http://localhost:3000/api/habits/login",
-                    {
-                        credentials: "include",
-                        method: "POST",
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name })
-                    });
-                if (!response.ok) {
-                    throw new Error("Bad Request");
-                } else {
-                    await refreshAuth();
-                    navigate("/dashboard");
-
-                }
-
+                await api.post("/login", { name });
+                await refreshAuth();
+                navigate("/dashboard");
             } catch (e) {
                 setError(""+e)
                 return setErrorState(errorState+1);

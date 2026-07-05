@@ -3,6 +3,7 @@ import NewHabit from "../components/NewHabit"
 import Navbar from "../components/Navbar"
 import { useState, useEffect, useCallback } from "react";
 import EditPopup from "../components/EditPopup";
+import { api } from "../components/api";
 
 export type Habit = {
     id : number,
@@ -21,14 +22,7 @@ export default function Dashboard() {
 
     const fetchHabits = useCallback(async () => {
         try {
-            const res = await fetch("http://localhost:3000/api/habits/all-habits", {
-                credentials: "include",
-            });
-
-            if (!res.ok) {
-                throw new Error(`${res.status}`);
-            }
-            const data = await res.json();
+            const data = await api.get<{ habits: Habit[] }>("/all-habits");
             setHabits(data.habits);
             setError(null);
         } catch (e) {
@@ -37,6 +31,7 @@ export default function Dashboard() {
             setLoading(false);
         }
     }, []);
+
 
     useEffect(() => {
         fetchHabits();

@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { api } from "./api";
 
 type newHabitType = {
     name : string,
@@ -41,23 +42,12 @@ export default function NewHabit({ onCreated, onClose } : { onCreated : () => vo
 
         const sendReq = async () => {
             try {
-                const response = await fetch("http://localhost:3000/api/habits/new-habit",
-                    {
-                        credentials: "include",
-                        method: "POST",
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(newHabit)
-                    });
-                if (!response.ok) {
-                    throw new Error("Bad Request");
-                } else {
-                    setName("");
-                    setDescription("");
-                    setIcon("");
-                    onCreated();
-                    onClose();
-                }
-
+                await api.post("/new-habit", newHabit);
+                setName("");
+                setDescription("");
+                setIcon("");
+                onCreated();
+                onClose();
             } catch (e) {
                 return setError("Error: "+ e);
             }

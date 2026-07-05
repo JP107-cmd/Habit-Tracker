@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { add, sub } from 'date-fns';
+import { sub } from 'date-fns';
 
 const getId = (cookie: any) => {
     try {
@@ -24,7 +24,7 @@ export const login = (req: any, res: any) => {
 
     const user = db.prepare(`
          SELECT id FROM USERS WHERE name = (?);
-    `).get('Jayden');
+    `).get(name);
 
      res.cookie("session", {user}, {
             httpOnly: true,

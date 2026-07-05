@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext, createContext } from "react";
 import { useNavigate } from "react-router";
+import { api } from "../components/api";
 
 const AuthContext = createContext<any | null>(null);
 
@@ -11,15 +12,8 @@ export default function AuthProvider({  children }: { children : any}) {
   async function refreshAuth() {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:3000/api/habits/auth/me", {
-        credentials: "include",
-      });
-      if (!res.ok) {
-        return setUser(null);
-      } else {
-        const data = await res.json();
-        setUser(data.id);
-      }
+      const data = await api.get<any>("/auth/me");
+      setUser(data.id);
     } catch {
         setUser(null);
     } finally {
@@ -32,10 +26,11 @@ export default function AuthProvider({  children }: { children : any}) {
   }, []);
 
   async function logout() {
-    await fetch("http://localhost:3000/api/habits/logout", {
-      method: "GET",
-      credentials: "include",
-    });
+    try {
+      await api.get("/logout");
+    } catch {
+      // ignore — log out locally regardless
+    }
     setUser(null);
     refreshAuth()
     return navigate("/");

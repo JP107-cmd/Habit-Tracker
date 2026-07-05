@@ -1,6 +1,7 @@
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow'
 import { useCallback, useState, useEffect } from 'react';
 import Loading from "./Loading";
+import { api } from "./api";
 
 type Habit = {
     id : number,
@@ -22,50 +23,24 @@ export default function HabitCard({ habit, onEdit, onDeleted } : {habit : Habit,
     const [numberOfCompletions, setNumberOfCompletions] = useState<number | null>(null);
 
     const handleDelete = async () => {
-        const sendReq = async () => {
-            try {
-                const response = await fetch("http://localhost:3000/api/habits/"+id,
-                    {
-                        credentials: "include",
-                        method: "DELETE",
-                        headers: { 'Content-Type': 'application/json' },
-                    });
-                if (!response.ok) {
-                    throw new Error("Bad Request");
-                } else {
-                    onDeleted();
-                }
-
-            } catch (e) {
-                return;
-            }
+        try {
+            await api.del("/" + id);
+            onDeleted();
+        } catch (e) {
+            return;
         }
-        sendReq();
     }
 
     const checkCompletion = useCallback(async () => {
-        const sendReq = async () => {
-            try {
-                setLoading(true);
-                const response = await fetch("http://localhost:3000/api/habits/is-completed/"+id,
-                    {
-                        credentials: "include",
-                        method: "GET",
-                        headers: { 'Content-Type': 'application/json' },
-                    });
-                if (!response.ok) {
-                    return
-                } else {
-                    const data = await response.json();
-                    setCompleted(data.completedToday);
-                    setLoading(false);
-                }
-            } catch (e) {
-                return;
-            }
+        try {
+            setLoading(true);
+            const data = await api.get<{ completedToday: boolean }>("/is-completed/" + id);
+            setCompleted(data.completedToday);
+            setLoading(false);
+        } catch (e) {
+            return;
         }
-        sendReq();
-    }, []);
+    }, [id]);
 
     useEffect(() => {
         checkCompletion()
@@ -74,75 +49,33 @@ export default function HabitCard({ habit, onEdit, onDeleted } : {habit : Habit,
 
 
     const recordCompletion = async () => {
-        const sendReq = async () => {
-            try {
-                const response = await fetch("http://localhost:3000/api/habits/habit-completed",
-                    {
-                        credentials: "include",
-                        method: "POST",
-                        body: JSON.stringify({id : habit.id}),
-                        headers: { 'Content-Type': 'application/json' },
-                    });
-                if (!response.ok) {
-                    throw new Error("Bad Request");
-                } else {
-                    checkCompletion();
-                    return getStats();
-                }
-
-            } catch (e) {
-                return;
-            }
+        try {
+            await api.post("/habit-completed", { id: habit.id });
+            checkCompletion();
+            return getStats();
+        } catch (e) {
+            return;
         }
-        sendReq();
     }
 
     const recordUndo = async () => {
-        const sendReq = async () => {
-            try {
-                const response = await fetch("http://localhost:3000/api/habits/undo-completion",
-                    {
-                        credentials: "include",
-                        method: "POST",
-                        body: JSON.stringify({id : habit.id}),
-                        headers: { 'Content-Type': 'application/json' },
-                    });
-                if (!response.ok) {
-                    throw new Error("Bad Request");
-                } else {
-                    checkCompletion();
-                    return getStats();
-                }
-
-            } catch (e) {
-                return;
-            }
+        try {
+            await api.post("/undo-completion", { id: habit.id });
+            checkCompletion();
+            return getStats();
+        } catch (e) {
+            return;
         }
-        sendReq();
     }
 
     const getStats = async () => {
-        const sendReq = async () => {
-            try {
-                const response = await fetch("http://localhost:3000/api/habits/stats/"+id,
-                    {
-                        credentials: "include",
-                        method: "GET",
-                        headers: { 'Content-Type': 'application/json' },
-                    });
-                if (!response.ok) {
-                    throw new Error("Bad Request");
-                } else {
-                    const data = await response.json();
-                    setCurrentStreak(data.stats.currentStreak);
-                    setNumberOfCompletions(data.stats.numberOfCompletions);
-                }
-
-            } catch (e) {
-                return;
-            }
+        try {
+            const data = await api.get<{ stats: { currentStreak: number; numberOfCompletions: number } }>("/stats/" + id);
+            setCurrentStreak(data.stats.currentStreak);
+            setNumberOfCompletions(data.stats.numberOfCompletions);
+        } catch (e) {
+            return;
         }
-        sendReq();
     }
 
 
